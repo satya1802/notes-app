@@ -98,4 +98,29 @@ describe("SignIn", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("[AC-004] offers no registration or sign-up link anywhere on the screen", () => {
+    renderSignIn();
+
+    // No link, button or text inviting a visitor to register or create an account.
+    expect(screen.queryByText(/sign up/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sign-up/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/register/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/create an? account/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /sign up|register|create account/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("[AC-005] the screen exposes a single sign-in form for the one owner account, with no field to create another account", () => {
+    const { container } = renderSignIn();
+
+    // Exactly one form on the screen: the owner sign-in form, with only email and
+    // password fields. No name, invite code or second-account field exists.
+    expect(container.querySelectorAll("form")).toHaveLength(1);
+    expect(screen.getByTestId("owner-sign-in-form")).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    expect(screen.queryByLabelText(/invite|confirm password|username/i)).not.toBeInTheDocument();
+  });
 });
