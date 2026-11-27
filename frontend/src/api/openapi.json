@@ -67,6 +67,32 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Your session has expired. Sign in again."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout",
+        "description": "Revoke the caller's session (AC-008): once marked, `current_session` refuses\nit the same way it refuses an idle-expired one (AUTH_SESSION_EXPIRED), so the\ncaller must sign in again to reach their notes.",
+        "operationId": "logout_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Your session has expired. Sign in again."
           }
         },
         "security": [

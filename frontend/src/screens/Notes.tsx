@@ -6,6 +6,8 @@ import * as UI from "@/lib/ui";
 import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
+import { api } from "@/api/client";
+import { clearSessionToken } from "@/lib/api";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { Button, Input, Textarea, Label, Badge, Empty } = UI;
@@ -404,11 +406,15 @@ export default function Screen() {
 
   function signOut() {
     setSigningOut(true);
-    pushTimer(
-      setTimeout(function () {
+    // Sign-out always ends the local session and returns to Sign in, even if the
+    // request to revoke the server-side token never completes (AC-008).
+    api
+      .POST("/auth/logout")
+      .catch(function () {})
+      .then(function () {
+        clearSessionToken();
         navigate("sign-in");
-      }, 620),
-    );
+      });
   }
 
   const css =

@@ -6,9 +6,11 @@ database and exercises app.auth's logic directly: no HTTP, no router.
 """
 
 import secrets
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -16,6 +18,8 @@ from sqlalchemy.pool import StaticPool
 from app.auth import (
     LoginRequest,
     LoginResponse,
+    current_session,
+    current_user,
     ensure_user,
     find_user,
     hash_password,
@@ -23,7 +27,9 @@ from app.auth import (
     verify_password,
 )
 from app.database import Base
-from app.errors import AUTH_INVALID_CREDENTIALS
+from app.errors import AUTH_INVALID_CREDENTIALS, AUTH_SESSION_EXPIRED
+from app.models import Session as SessionRecord
+from app.routers.sessions import logout
 
 OWNER_ROLE = "owner"
 
@@ -182,3 +188,139 @@ def test_ac003_the_issued_token_never_contains_the_plain_password(session: Sessi
     response = login(LoginRequest(email=email, password=password), session)
 
     assert password not in response.token
+
+
+# US-003: session persistence, idle expiry and sign-out.
+
+
+def _creds(token: str) -> HTTPAuthorizationCredentials:
+    return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+
+def _sign_in(session: Session, password: str, email: str) -> str:
+    return login(LoginRequest(email=email, password=password), session).token
+
+
+# AC-006: while the owner stays active, the session keeps working and the notes
+# stay reachable without re-entering the password.
+
+
+def test_ac006_an_active_session_keeps_working_without_a_password(session: Session) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+    token = _sign_in(session, password, email)
+
+    first = current_user(current_session(_creds(token), session), session)
+    second = current_user(current_session(_creds(token), session), session)
+
+    assert first.email == email
+    assert second.email == email
+
+
+def test_ac006_using_the_session_pushes_its_idle_deadline_forward(session: Session) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+    token = _sign_in(session, password, email)
+    record = session.get(SessionRecord, token)
+    assert record is not None
+    soon = datetime.now(UTC) + timedelta(seconds=1)
+    record.expires_at = soon
+    session.commit()
+
+    current_session(_creds(token), session)
+
+    pushed_forward = record.expires_at
+    if pushed_forward.tzinfo is None:  # SQLite drops the timezone it was given
+        pushed_forward = pushed_forward.replace(tzinfo=UTC)
+    assert pushed_forward > soon
+
+
+# AC-007 / NFR-002: idle beyond the expiry period ends the session; within it, the
+# session is still good.
+
+
+def test_ac007_a_session_idle_beyond_its_expiry_is_refused(session: Session) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+    token = _sign_in(session, password, email)
+    record = session.get(SessionRecord, token)
+    assert record is not None
+    record.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+    session.commit()
+
+    with pytest.raises(HTTPException) as exc_info:
+        current_session(_creds(token), session)
+
+    assert exc_info.value.status_code == AUTH_SESSION_EXPIRED[0]
+    assert exc_info.value.detail == AUTH_SESSION_EXPIRED[1]
+
+
+def test_ac007_a_session_within_its_expiry_is_still_accepted(session: Session) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+    token = _sign_in(session, password, email)
+
+    record = current_session(_creds(token), session)
+
+    assert record.token == token
+
+
+# AC-008: signing out revokes the session; a revoked session cannot be used again
+# and the caller must sign in again.
+
+
+def test_ac008_logout_revokes_the_session(session: Session) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+    token = _sign_in(session, password, email)
+    record = current_session(_creds(token), session)
+
+    logout(record, session)
+
+    assert record.revoked_at is not None
+    with pytest.raises(HTTPException) as exc_info:
+        current_session(_creds(token), session)
+    assert exc_info.value.status_code == AUTH_SESSION_EXPIRED[0]
+    assert exc_info.value.detail == AUTH_SESSION_EXPIRED[1]
+
+
+def test_ac008_an_unknown_token_is_refused_like_a_revoked_session(session: Session) -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        current_session(_creds(secrets.token_urlsafe()), session)
+
+    assert exc_info.value.status_code == AUTH_SESSION_EXPIRED[0]
+    assert exc_info.value.detail == AUTH_SESSION_EXPIRED[1]
+
+
+def test_ac008_no_credentials_at_all_is_refused(session: Session) -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        current_session(None, session)
+
+    assert exc_info.value.status_code == AUTH_SESSION_EXPIRED[0]
+
+
+# AC-009: each sign-in opens its own session for the same owner, so a second
+# browser or device reaches the same server-stored account, and ending one
+# session never disturbs the other.
+
+
+def test_ac009_two_sign_ins_for_the_same_owner_are_independent_sessions(
+    session: Session,
+) -> None:
+    password = secrets.token_urlsafe()
+    email = _make_owner(session, password)
+
+    token_one = _sign_in(session, password, email)
+    token_two = _sign_in(session, password, email)
+
+    assert token_one != token_two
+    user_one = current_user(current_session(_creds(token_one), session), session)
+    user_two = current_user(current_session(_creds(token_two), session), session)
+    assert user_one.id == user_two.id
+
+    logout(current_session(_creds(token_one), session), session)
+
+    with pytest.raises(HTTPException):
+        current_session(_creds(token_one), session)
+    # the other browser's session is untouched
+    assert current_user(current_session(_creds(token_two), session), session).email == email

@@ -113,6 +113,16 @@ describe("SignIn", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("[AC-007] shows the session-expired message when navigated here after an inactivity timeout", () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/sign-in", state: { expired: true } }]}>
+        <Screen />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Your session expired. Please sign in again.")).toBeInTheDocument();
+  });
+
   it("[AC-005] the screen exposes a single sign-in form for the one owner account, with no field to create another account", () => {
     const { container } = renderSignIn();
 

@@ -1,17 +1,68 @@
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import { NavLink, Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import { Icons } from "@/lib/icons";
-import { getSessionToken } from "@/lib/api";
+import { api } from "@/api/client";
+import { clearSessionToken, getSessionToken } from "@/lib/api";
 import SignIn from "@/screens/SignIn";
 import Notes from "@/screens/Notes";
 
-// Notes is the owner's private list: without a session token (never signed in, or the
-// session has since ended) a visit is sent back to sign-in, which shows the
-// session-expired message.
+type SessionState = "checking" | "signed-in" | "signed-out" | "expired";
+
+// A stored token only proves a session once existed; it may have since expired from
+// inactivity (AC-007) or never existed at all. On every app load this restores the
+// signed-in session by asking the server who it belongs to, /auth/me, rather than
+// trusting the token on its own (AC-006, AC-009): the same check lets any browser or
+// device that holds a still-valid token straight through to the same server-stored
+// notes.
+function useSessionState(): SessionState {
+  const [state, setState] = useState<SessionState>(() =>
+    getSessionToken() ? "checking" : "signed-out",
+  );
+
+  useEffect(() => {
+    if (!getSessionToken()) {
+      setState("signed-out");
+      return;
+    }
+    let cancelled = false;
+    api
+      .GET("/auth/me")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          clearSessionToken();
+          setState("expired");
+        } else {
+          setState("signed-in");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        clearSessionToken();
+        setState("expired");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+}
+
+// Notes is the owner's private list: without a session that the server still honors, a
+// visit is sent back to sign-in. A session that used to exist but no longer validates
+// shows the session-expired message there; one that never existed does not.
 function RequireSession({ children }: { children: ReactElement }) {
-  if (!getSessionToken()) {
+  const state = useSessionState();
+
+  if (state === "checking") return null;
+  if (state === "expired") {
     return <Navigate to="/sign-in" state={{ expired: true }} replace />;
+  }
+  if (state === "signed-out") {
+    return <Navigate to="/sign-in" replace />;
   }
   return children;
 }
