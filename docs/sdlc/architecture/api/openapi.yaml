@@ -2,6 +2,216 @@
 openapi: 3.1.0
 info:
   title: Notes app
-  version: architecture-v0
+  version: architecture-v1
   description: Designed API from the approved architecture (not extracted from code).
-paths: {}
+paths:
+  /auth/login:
+    post:
+      summary: Verify the owner's email and password; on success create a session
+        and return its opaque token in the body. On failure r
+      description: Verify the owner's email and password; on success create a session
+        and return its opaque token in the body. On failure return a generic credentials-incorrect
+        message.
+      operationId: post_auth_login
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{ "email": "owner@example.com", "password": "<owner-password>"
+                }'
+      responses:
+        '200':
+          description: '{ "token": "<opaque-session-token>", "expires_at": "2026-11-27T12:00:00Z"
+            }'
+  /auth/logout:
+    post:
+      summary: Revoke the current session token so it can no longer be used.
+      description: Revoke the current session token so it can no longer be used.
+      operationId: post_auth_logout
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: empty body
+      responses:
+        '200':
+          description: '{ "status": "signed_out" }'
+      security:
+      - bearerAuth: []
+  /auth/me:
+    get:
+      summary: Return the signed-in owner for session validation on app load.
+      description: Return the signed-in owner for session validation on app load.
+      operationId: get_auth_me
+      parameters: []
+      responses:
+        '200':
+          description: '{ "id": "<uuid>", "email": "owner@example.com" }'
+      security:
+      - bearerAuth: []
+  /notes:
+    get:
+      summary: List the owner's notes ordered by most recent activity; when q is supplied,
+        return only notes whose text matches via ful
+      description: List the owner's notes ordered by most recent activity; when q
+        is supplied, return only notes whose text matches via full-text search.
+      operationId: get_notes
+      parameters: []
+      responses:
+        '200':
+          description: '[ { "id": "<uuid>", "content": "...", "created_at": "...",
+            "updated_at": "..." } ]'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a new plain-text note with a created timestamp.
+      description: Create a new plain-text note with a created timestamp.
+      operationId: post_notes
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{ "content": "plain text" }'
+      responses:
+        '200':
+          description: '{ "id": "<uuid>", "content": "plain text", "created_at": "...",
+            "updated_at": "..." }'
+      security:
+      - bearerAuth: []
+  /notes/{id}:
+    get:
+      summary: Return the full plain-text content of a single note.
+      description: Return the full plain-text content of a single note.
+      operationId: get_notes_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ "id": "<uuid>", "content": "...", "created_at": "...", "updated_at":
+            "..." }'
+      security:
+      - bearerAuth: []
+    patch:
+      summary: Update a note's text (used by auto-save) and set updated_at to the
+        change time.
+      description: Update a note's text (used by auto-save) and set updated_at to
+        the change time.
+      operationId: patch_notes_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{ "content": "edited text" }'
+      responses:
+        '200':
+          description: '{ "id": "<uuid>", "content": "edited text", "updated_at":
+            "..." }'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete a note permanently so it no longer appears in the list.
+      description: Delete a note permanently so it no longer appears in the list.
+      operationId: delete_notes_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{ "status": "deleted" }'
+      security:
+      - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    owner:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        password_hash:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - email
+      - password_hash
+      - created_at
+    session:
+      type: object
+      properties:
+        token:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        last_active_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+      required:
+      - token
+      - owner_id
+      - created_at
+      - last_active_at
+      - expires_at
+    note:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        owner_id:
+          type: string
+          format: uuid
+        content:
+          type: string
+        content_tsv:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - owner_id
+      - content
+      - created_at
+      - updated_at
