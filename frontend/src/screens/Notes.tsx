@@ -97,7 +97,7 @@ const SEED_NOTES = [
     id: "note_8ad5",
     owner_id: "own_01",
     content:
-      "Quotes I keep coming back to\n\n\"The best time to plant a tree was twenty years ago. The second best time is now.\"\n\n\"A person is a fool to become a writer. His only compensation is absolute freedom.\" — Roald Dahl\n\n\"Attention is the rarest and purest form of generosity.\" — Simone Weil",
+      'Quotes I keep coming back to\n\n"The best time to plant a tree was twenty years ago. The second best time is now."\n\n"A person is a fool to become a writer. His only compensation is absolute freedom." — Roald Dahl\n\n"Attention is the rarest and purest form of generosity." — Simone Weil',
     created_at: NOW - 40 * DAY,
     updated_at: NOW - 8 * DAY,
   },
@@ -175,7 +175,8 @@ export default function Screen() {
   const glassBg = "rgba(255,255,255,0.055)";
   const glassBg2 = "rgba(255,255,255,0.09)";
   const hair = "1px solid rgba(255,255,255,0.13)";
-  const gradient = "linear-gradient(104deg, " + brand.primaryColor + " 0%, " + brand.accentColor + " 100%)";
+  const gradient =
+    "linear-gradient(104deg, " + brand.primaryColor + " 0%, " + brand.accentColor + " 100%)";
 
   const [notes, setNotes] = React.useState(SEED_NOTES);
   const [loading, setLoading] = React.useState(true);
@@ -228,14 +229,14 @@ export default function Screen() {
         textareaRef.current.focus();
       }
     },
-    [selectedId]
+    [selectedId],
   );
 
   React.useEffect(
     function () {
       if (confirmOpen && cancelRef.current) cancelRef.current.focus();
     },
-    [confirmOpen]
+    [confirmOpen],
   );
 
   const sorted = React.useMemo(
@@ -244,7 +245,7 @@ export default function Screen() {
         return b.updated_at - a.updated_at;
       });
     },
-    [notes]
+    [notes],
   );
 
   const q = query.trim().toLowerCase();
@@ -262,7 +263,9 @@ export default function Screen() {
   function commit(id, text, unsynced) {
     setNotes(function (prev) {
       return prev.map(function (n) {
-        return n.id === id ? { ...n, content: text, updated_at: Date.now(), unsynced: !!unsynced } : n;
+        return n.id === id
+          ? { ...n, content: text, updated_at: Date.now(), unsynced: !!unsynced }
+          : n;
       });
     });
   }
@@ -281,7 +284,7 @@ export default function Screen() {
           setLastSynced(Date.now());
           setSaveState("saved");
         }
-      }, 680)
+      }, 680),
     );
   }
 
@@ -295,7 +298,7 @@ export default function Screen() {
     pushTimer(
       setTimeout(function () {
         runSave(id, value);
-      }, 950)
+      }, 950),
     );
   }
 
@@ -344,7 +347,7 @@ export default function Screen() {
     pushTimer(
       setTimeout(function () {
         setFlash(null);
-      }, 4200)
+      }, 4200),
     );
   }
 
@@ -369,7 +372,7 @@ export default function Screen() {
         setConfirmOpen(false);
         showFlash("Deleted “" + titleOf(victim.content) + "”.");
         if (newNoteRef.current) newNoteRef.current.focus();
-      }, 520)
+      }, 520),
     );
   }
 
@@ -404,7 +407,7 @@ export default function Screen() {
     pushTimer(
       setTimeout(function () {
         navigate("sign-in");
-      }, 620)
+      }, 620),
     );
   }
 
@@ -472,7 +475,9 @@ export default function Screen() {
               style={{ fontFamily: brand.fontHeading }}
             >
               My notes{" "}
-              <span style={{ color: brand.accentColor, fontVariantNumeric: "tabular-nums" }}>({notes.length})</span>
+              <span style={{ color: brand.accentColor, fontVariantNumeric: "tabular-nums" }}>
+                ({notes.length})
+              </span>
             </h1>
             <p className="mt-2 text-sm leading-relaxed" style={{ color: dim }}>
               Signed in as {OWNER_EMAIL} · kept on the server, so they open on any browser ·{" "}
@@ -552,7 +557,10 @@ export default function Screen() {
               </button>
             ) : null}
           </div>
-          <p className="mt-2 pl-1 text-xs" style={{ color: dim, fontVariantNumeric: "tabular-nums" }}>
+          <p
+            className="mt-2 pl-1 text-xs"
+            style={{ color: dim, fontVariantNumeric: "tabular-nums" }}
+          >
             {q
               ? visible.length + " of " + notes.length + " notes match “" + query.trim() + "”"
               : "Searches the full text of every note. No folders, notebooks or tags — one list."}
@@ -611,7 +619,11 @@ export default function Screen() {
                     style={{ color: ink, backgroundColor: brand.primaryColor + "14" }}
                     role="status"
                   >
-                    <CheckCircle className="mt-px h-4 w-4 shrink-0" aria-hidden="true" style={{ color: brand.primaryColor }} />
+                    <CheckCircle
+                      className="mt-px h-4 w-4 shrink-0"
+                      aria-hidden="true"
+                      style={{ color: brand.primaryColor }}
+                    />
                     {flash}
                   </p>
                 ) : null}
@@ -620,7 +632,11 @@ export default function Screen() {
                   <ul className="p-3">
                     {[0, 1, 2, 3, 4].map(function (i) {
                       return (
-                        <li key={i} className="np-shimmer px-2 py-3.5" style={{ animationDelay: i * 0.1 + "s" }}>
+                        <li
+                          key={i}
+                          className="np-shimmer px-2 py-3.5"
+                          style={{ animationDelay: i * 0.1 + "s" }}
+                        >
                           <div
                             className="h-3.5 w-2/3 rounded-full"
                             style={{ backgroundColor: "rgba(255,255,255,0.14)" }}
@@ -642,14 +658,21 @@ export default function Screen() {
                       className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
                       style={{ backgroundColor: glassBg2, border: hair }}
                     >
-                      <Search className="h-5 w-5" aria-hidden="true" style={{ color: brand.accentColor }} />
+                      <Search
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                        style={{ color: brand.accentColor }}
+                      />
                     </div>
                     <p className="mt-4 text-sm font-semibold" style={{ color: ink }}>
                       No notes found for “{query.trim()}”
                     </p>
-                    <p className="mx-auto mt-1.5 max-w-[34ch] text-xs leading-relaxed" style={{ color: dim }}>
-                      Nothing in your {notes.length} notes contains that text. Try a shorter word, or clear the search to
-                      see everything again.
+                    <p
+                      className="mx-auto mt-1.5 max-w-[34ch] text-xs leading-relaxed"
+                      style={{ color: dim }}
+                    >
+                      Nothing in your {notes.length} notes contains that text. Try a shorter word,
+                      or clear the search to see everything again.
                     </p>
                     <Button
                       type="button"
@@ -672,7 +695,11 @@ export default function Screen() {
                     {visible.map(function (n, i) {
                       const isSel = n.id === selectedId;
                       return (
-                        <li key={n.id} className="np-rise" style={{ animationDelay: Math.min(i, 8) * 0.025 + "s" }}>
+                        <li
+                          key={n.id}
+                          className="np-rise"
+                          style={{ animationDelay: Math.min(i, 8) * 0.025 + "s" }}
+                        >
                           <button
                             type="button"
                             data-wf={"i-2-0-" + i}
@@ -715,12 +742,18 @@ export default function Screen() {
                                 </Badge>
                               ) : null}
                             </span>
-                            <span className="mt-1 block truncate text-[13px]" style={{ color: dim }}>
+                            <span
+                              className="mt-1 block truncate text-[13px]"
+                              style={{ color: dim }}
+                            >
                               {snippetOf(n.content)}
                             </span>
                             <span
                               className="mt-1.5 flex items-center gap-1.5 text-[11px]"
-                              style={{ color: isSel ? brand.primaryColor : "#7e94b2", fontVariantNumeric: "tabular-nums" }}
+                              style={{
+                                color: isSel ? brand.primaryColor : "#7e94b2",
+                                fontVariantNumeric: "tabular-nums",
+                              }}
                             >
                               <Clock className="h-3 w-3" aria-hidden="true" />
                               updated {relTime(n.updated_at)}
@@ -740,8 +773,14 @@ export default function Screen() {
             <div className="p-5 sm:p-6" style={panelStyle}>
               {loading ? (
                 <div className="np-shimmer space-y-3 py-6">
-                  <div className="h-4 w-48 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.14)" }} />
-                  <div className="h-[320px] w-full rounded-2xl" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
+                  <div
+                    className="h-4 w-48 rounded-full"
+                    style={{ backgroundColor: "rgba(255,255,255,0.14)" }}
+                  />
+                  <div
+                    className="h-[320px] w-full rounded-2xl"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                  />
                   <p className="text-xs" style={{ color: dim }}>
                     Opening your most recent note…
                   </p>
@@ -752,19 +791,28 @@ export default function Screen() {
                     className="flex h-14 w-14 items-center justify-center rounded-full"
                     style={{ backgroundColor: glassBg2, border: hair }}
                   >
-                    <FileText className="h-6 w-6" aria-hidden="true" style={{ color: brand.primaryColor }} />
+                    <FileText
+                      className="h-6 w-6"
+                      aria-hidden="true"
+                      style={{ color: brand.primaryColor }}
+                    />
                   </div>
                   <h2 className="mt-5 text-xl font-bold" style={{ fontFamily: brand.fontHeading }}>
                     Nothing open
                   </h2>
                   <p className="mt-2 max-w-[44ch] text-sm leading-relaxed" style={{ color: dim }}>
-                    Pick a note from the list to read it, or start a new one — it saves itself as you type.
+                    Pick a note from the list to read it, or start a new one — it saves itself as
+                    you type.
                   </p>
                 </div>
               ) : (
                 <React.Fragment>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                    <Label htmlFor="note-body" className="text-[13px] font-bold" style={{ color: ink }}>
+                    <Label
+                      htmlFor="note-body"
+                      className="text-[13px] font-bold"
+                      style={{ color: ink }}
+                    >
                       Note text (plain text only)
                     </Label>
                     <span
@@ -802,15 +850,19 @@ export default function Screen() {
                       }}
                       role="alert"
                     >
-                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" style={{ color: "#fda4af" }} />
+                      <AlertCircle
+                        className="mt-0.5 h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                        style={{ color: "#fda4af" }}
+                      />
                       <div className="min-w-[200px] flex-1">
                         <p className="text-sm font-semibold" style={{ color: "#ffe4e6" }}>
                           This change hasn’t reached the server
                         </p>
                         <p className="mt-1 text-[13px] leading-relaxed" style={{ color: dim }}>
-                          The connection dropped while saving. Your text is still here on screen and nothing has been
-                          lost — keep typing and it will try the server again, or leave this tab open until it goes
-                          through.
+                          The connection dropped while saving. Your text is still here on screen and
+                          nothing has been lost — keep typing and it will try the server again, or
+                          leave this tab open until it goes through.
                         </p>
                       </div>
                     </div>
@@ -844,7 +896,11 @@ export default function Screen() {
                     data-wf="b-3-1"
                     id="note-meta"
                     className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t pt-4 text-[13px]"
-                    style={{ borderColor: "rgba(255,255,255,0.1)", color: dim, fontVariantNumeric: "tabular-nums" }}
+                    style={{
+                      borderColor: "rgba(255,255,255,0.1)",
+                      color: dim,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
                   >
                     <span>Created {absTime(selected.created_at)}</span>
                     <span aria-hidden="true">·</span>
@@ -885,13 +941,17 @@ export default function Screen() {
         </div>
 
         <p className="mt-8 text-center text-xs" style={{ color: "#6e84a2" }}>
-          Private to one owner · free, with no billing · sessions end after 30 minutes idle or when you sign out
+          Private to one owner · free, with no billing · sessions end after 30 minutes idle or when
+          you sign out
         </p>
       </div>
 
       {/* Row 6 — confirmation */}
       {confirmOpen && selected ? (
-        <div data-wf="b-5-0" className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+        <div
+          data-wf="b-5-0"
+          className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+        >
           <div
             aria-hidden="true"
             onClick={closeConfirm}
@@ -927,8 +987,8 @@ export default function Screen() {
               Delete this note?
             </h2>
             <p id="delete-desc" className="mt-2 text-sm leading-relaxed" style={{ color: dim }}>
-              It will be removed permanently — “{titleOf(selected.content)}” won’t come back when you reload or sign in
-              from another browser.
+              It will be removed permanently — “{titleOf(selected.content)}” won’t come back when
+              you reload or sign in from another browser.
             </p>
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button
@@ -963,7 +1023,11 @@ export default function Screen() {
                 }}
               >
                 {deleting ? (
-                  <span className="np-pulse inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#3f0a14" }} aria-hidden="true" />
+                  <span
+                    className="np-pulse inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: "#3f0a14" }}
+                    aria-hidden="true"
+                  />
                 ) : (
                   <Trash className="h-4 w-4" aria-hidden="true" />
                 )}

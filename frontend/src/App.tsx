@@ -1,8 +1,20 @@
+import type { ReactElement } from "react";
 import { NavLink, Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import { Icons } from "@/lib/icons";
+import { getSessionToken } from "@/lib/api";
 import SignIn from "@/screens/SignIn";
 import Notes from "@/screens/Notes";
+
+// Notes is the owner's private list: without a session token (never signed in, or the
+// session has since ended) a visit is sent back to sign-in, which shows the
+// session-expired message.
+function RequireSession({ children }: { children: ReactElement }) {
+  if (!getSessionToken()) {
+    return <Navigate to="/sign-in" state={{ expired: true }} replace />;
+  }
+  return children;
+}
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -51,7 +63,14 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShellLayout />}>
-        <Route path="/notes" element={<Notes />} />
+        <Route
+          path="/notes"
+          element={
+            <RequireSession>
+              <Notes />
+            </RequireSession>
+          }
+        />
       </Route>
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="*" element={<Navigate to="/sign-in" replace />} />

@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.api_model import ApiModel
 from app.database import get_db
+from app.errors import AUTH_INVALID_CREDENTIALS
 from app.models import User
 
 ADMIN_ROLE = "admin"
@@ -127,11 +128,16 @@ def current_user(
     return user
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    responses={AUTH_INVALID_CREDENTIALS[0]: {"description": AUTH_INVALID_CREDENTIALS[1]}},
+)
 def login(body: LoginRequest, session: Annotated[Session, Depends(get_db)]) -> LoginResponse:
+    # AC-002 / NFR-003: an unknown email and a wrong password raise the exact same
+    # error, so neither the status nor the message ever hints at which one it was.
     user = find_user(session, body.email.strip())
     if user is None or not verify_password(body.password, user.password_hash or ""):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Wrong email or password.")
+        raise HTTPException(*AUTH_INVALID_CREDENTIALS)
     return LoginResponse(token=issue_token(user))
 
 
