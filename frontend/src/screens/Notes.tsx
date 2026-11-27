@@ -191,6 +191,10 @@ export default function Screen() {
   const [deleting, setDeleting] = React.useState(false);
   const [flash, setFlash] = React.useState(null);
   const [signingOut, setSigningOut] = React.useState(false);
+  const [creatingNote, setCreatingNote] = React.useState(false);
+  const [newNoteText, setNewNoteText] = React.useState("");
+  const [createLoading, setCreateLoading] = React.useState(false);
+  const [createError, setCreateError] = React.useState(null);
 
   const timersRef = React.useRef([]);
   const attemptsRef = React.useRef(0);
@@ -231,7 +235,7 @@ export default function Screen() {
         textareaRef.current.focus();
       }
     },
-    [selectedId],
+    [selectedId, creatingNote],
   );
 
   React.useEffect(
@@ -329,19 +333,55 @@ export default function Screen() {
 
   function createNote() {
     flushBeforeLeaving();
-    const id = "note_" + Math.random().toString(36).slice(2, 6);
-    const now = Date.now();
-    const fresh = { id: id, owner_id: "own_01", content: "", created_at: now, updated_at: now };
-    setNotes(function (prev) {
-      return [fresh].concat(prev);
-    });
-    setSelectedId(id);
-    setDraft("");
+    setCreatingNote(true);
+    setNewNoteText("");
+    setCreateError(null);
+    setCreateLoading(false);
+    setSelectedId(null);
     setQuery("");
-    setSaveState("saved");
-    setLastSynced(now);
     focusEditorRef.current = true;
-    showFlash("New note created — start typing, it saves itself.");
+  }
+
+  // AC-010 / AC-011: the only way a note is created — plain text, entered here, sent
+  // to the server the moment the owner leaves the field. There is no formatting,
+  // checklist, image or attachment control anywhere on this screen.
+  function submitNewNote() {
+    const text = newNoteText;
+    if (!text.trim() || createLoading) return;
+    setCreateLoading(true);
+    setCreateError(null);
+    api
+      .POST("/notes", { body: { text: text } })
+      .then(function (res) {
+        if (res.error || !res.data) {
+          setCreateError("Changes not saved — check your connection");
+          return;
+        }
+        const data = res.data;
+        const createdMs = new Date(data.createdAt).getTime();
+        const fresh = {
+          id: data.id,
+          owner_id: "own_01",
+          content: data.text,
+          created_at: createdMs,
+          updated_at: createdMs,
+        };
+        setNotes(function (prev) {
+          return [fresh].concat(prev);
+        });
+        setSelectedId(data.id);
+        setDraft(data.text);
+        setSaveState("saved");
+        setLastSynced(createdMs);
+        setCreatingNote(false);
+        setNewNoteText("");
+      })
+      .catch(function () {
+        setCreateError("Changes not saved — check your connection");
+      })
+      .finally(function () {
+        setCreateLoading(false);
+      });
   }
 
   function showFlash(message) {
@@ -372,7 +412,7 @@ export default function Screen() {
         setSaveState("saved");
         setDeleting(false);
         setConfirmOpen(false);
-        showFlash("Deleted “" + titleOf(victim.content) + "”.");
+        showFlash("Note deleted");
         if (newNoteRef.current) newNoteRef.current.focus();
       }, 520),
     );
@@ -449,7 +489,7 @@ export default function Screen() {
   };
 
   const saveMeta = {
-    saved: { label: "Saved automatically", tone: brand.primaryColor },
+    saved: { label: "Saved", tone: brand.primaryColor },
     pending: { label: "Edited — saving in a moment", tone: brand.accentColor },
     saving: { label: "Saving to the server…", tone: brand.accentColor },
     error: { label: "Not saved", tone: "#fb7185" },
@@ -477,6 +517,7 @@ export default function Screen() {
         <div className="grid grid-cols-12 items-start gap-4">
           <div data-wf="b-0-0" className="col-span-12 lg:col-span-8">
             <h1
+              data-testid="my-notes-12-title"
               className="text-[32px] font-extrabold leading-tight tracking-tight lg:text-[40px]"
               style={{ fontFamily: brand.fontHeading }}
             >
@@ -505,6 +546,7 @@ export default function Screen() {
               type="button"
               onClick={createNote}
               data-wf="b-0-1-btn"
+              data-testid="new-note-btn"
               className="np-ring np-btn inline-flex h-12 w-full items-center justify-center gap-2 px-6 text-[15px] font-bold lg:w-auto"
               style={{
                 background: gradient,
@@ -533,6 +575,7 @@ export default function Screen() {
             />
             <Input
               id="notes-search"
+              data-testid="search-notes-by-text-input"
               type="search"
               value={query}
               onChange={function (e) {
@@ -578,9 +621,14 @@ export default function Screen() {
           {/* Left column: list / empty */}
           <div className="col-span-12 lg:col-span-4">
             {notes.length === 0 ? (
-              <div data-wf="b-3-0" className="np-rise p-2" style={panelStyle}>
+              <div
+                data-wf="b-3-0"
+                data-testid="no-notes-yet-create-your-first-not-empty"
+                className="np-rise p-2"
+                style={panelStyle}
+              >
                 <Empty
-                  title="No notes yet"
+                  title="No notes yet — create your first note"
                   description="Your list is clear. Create your first note and it will appear here, newest activity at the top."
                   action={
                     <Button
@@ -671,14 +719,14 @@ export default function Screen() {
                       />
                     </div>
                     <p className="mt-4 text-sm font-semibold" style={{ color: ink }}>
-                      No notes found for “{query.trim()}”
+                      No notes found
                     </p>
                     <p
                       className="mx-auto mt-1.5 max-w-[34ch] text-xs leading-relaxed"
                       style={{ color: dim }}
                     >
-                      Nothing in your {notes.length} notes contains that text. Try a shorter word,
-                      or clear the search to see everything again.
+                      Nothing in your {notes.length} notes contains “{query.trim()}”. Try a shorter
+                      word, or clear the search to see everything again.
                     </p>
                     <Button
                       type="button"
@@ -697,7 +745,10 @@ export default function Screen() {
                     </Button>
                   </div>
                 ) : (
-                  <ul className="max-h-[560px] overflow-y-auto p-2">
+                  <ul
+                    data-testid="sorted-by-most-recent-activity-list"
+                    className="max-h-[560px] overflow-y-auto p-2"
+                  >
                     {visible.map(function (n, i) {
                       const isSel = n.id === selectedId;
                       return (
@@ -791,6 +842,110 @@ export default function Screen() {
                     Opening your most recent note…
                   </p>
                 </div>
+              ) : creatingNote ? (
+                <React.Fragment>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <Label
+                      htmlFor="note-body"
+                      className="text-[13px] font-bold"
+                      style={{ color: ink }}
+                    >
+                      Note text (plain text only)
+                    </Label>
+                    <span
+                      className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold"
+                      style={{
+                        backgroundColor:
+                          (createLoading
+                            ? brand.accentColor
+                            : createError
+                              ? "#fb7185"
+                              : brand.primaryColor) + "1f",
+                        border:
+                          "1px solid " +
+                          (createLoading
+                            ? brand.accentColor
+                            : createError
+                              ? "#fb7185"
+                              : brand.primaryColor) +
+                          "55",
+                        color: createLoading
+                          ? brand.accentColor
+                          : createError
+                            ? "#fda4af"
+                            : brand.primaryColor,
+                      }}
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {createLoading ? (
+                        <span
+                          className="np-pulse inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: brand.accentColor }}
+                          aria-hidden="true"
+                        />
+                      ) : createError ? (
+                        <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {createLoading
+                        ? "Saving to the server…"
+                        : createError
+                          ? "Not saved"
+                          : "Saved"}
+                    </span>
+                  </div>
+
+                  {createError ? (
+                    <div
+                      className="np-rise mb-3 flex flex-wrap items-start gap-3 p-4"
+                      style={{
+                        backgroundColor: "#fb718514",
+                        border: "1px solid #fb718555",
+                        borderRadius: brand.radius,
+                      }}
+                      role="alert"
+                    >
+                      <AlertCircle
+                        className="mt-0.5 h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                        style={{ color: "#fda4af" }}
+                      />
+                      <div className="min-w-[200px] flex-1">
+                        <p className="text-sm font-semibold" style={{ color: "#ffe4e6" }}>
+                          Changes not saved — check your connection
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <Textarea
+                    id="note-body"
+                    data-testid="note-text-plain-text-only-input"
+                    ref={textareaRef}
+                    value={newNoteText}
+                    onChange={function (e) {
+                      setNewNoteText(e.target.value);
+                    }}
+                    onBlur={submitNewNote}
+                    spellCheck="true"
+                    disabled={createLoading}
+                    placeholder="Start typing. Plain text, saved as you go."
+                    aria-describedby="note-help"
+                    className="np-ring np-ta min-h-[360px] w-full resize-y p-5 text-[15px] leading-[1.65]"
+                    style={{
+                      backgroundColor: "rgba(255,255,255,0.04)",
+                      border: hair,
+                      borderRadius: brand.radius,
+                      color: ink,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  />
+                  <p id="note-help" className="mt-2 text-xs" style={{ color: dim }}>
+                    Plain text only — no formatting, checklists, images or attachments.
+                  </p>
+                </React.Fragment>
               ) : !selected ? (
                 <div className="flex min-h-[340px] flex-col items-center justify-center px-6 text-center">
                   <div
@@ -877,6 +1032,7 @@ export default function Screen() {
                   <Textarea
                     id="note-body"
                     data-wf="b-2-1"
+                    data-testid="note-text-plain-text-only-input"
                     ref={textareaRef}
                     value={draft}
                     onChange={onDraftChange}
@@ -924,6 +1080,7 @@ export default function Screen() {
                     <Button
                       type="button"
                       data-wf="b-4-0"
+                      data-testid="delete-note-btn"
                       ref={deleteBtnRef}
                       onClick={function () {
                         setConfirmOpen(true);
@@ -969,6 +1126,7 @@ export default function Screen() {
             aria-modal="true"
             aria-labelledby="delete-title"
             aria-describedby="delete-desc"
+            data-testid="delete-this-note-it-will-be-remove-modal"
             onKeyDown={onDialogKeyDown}
             className="np-pop relative w-full max-w-md p-6"
             style={{

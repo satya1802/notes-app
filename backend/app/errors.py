@@ -17,3 +17,7 @@ AUTH_SESSION_EXPIRED = (
     status.HTTP_401_UNAUTHORIZED,
     "Your session has expired. Sign in again.",
 )
+
+# AC-010 / AC-011: a note is plain text, so blank or missing text is refused rather
+# than creating an empty note.
+NOTE_TEXT_REQUIRED = (status.HTTP_422_UNPROCESSABLE_ENTITY, "Note text is required.")

@@ -5,6 +5,8 @@ generated route returns until it has been implemented. Every model is an ApiMode
 so its JSON uses camelCase names (app/api_model.py).
 """
 
+from datetime import datetime
+
 from app.api_model import ApiModel
 
 
@@ -30,3 +32,19 @@ class UserRead(ApiModel):
     id: str
     email: str
     role: str
+
+
+class NoteCreate(ApiModel):
+    """Body of `POST /notes` (AC-010): plain text only, no formatting, checklist,
+    image or attachment fields (AC-011)."""
+
+    text: str
+
+
+class NoteRead(ApiModel):
+    """A created note (AC-010/AC-012): its text and the timestamp recorded at the
+    moment of creation."""
+
+    id: str
+    text: str
+    created_at: datetime

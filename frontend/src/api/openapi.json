@@ -102,6 +102,48 @@
         ]
       }
     },
+    "/notes": {
+      "post": {
+        "tags": [
+          "Notes"
+        ],
+        "summary": "Create Note",
+        "operationId": "create_note_notes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Note text is required."
+          },
+          "401": {
+            "description": "Your session has expired. Sign in again."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -194,6 +236,45 @@
           "token"
         ],
         "title": "LoginResponse"
+      },
+      "NoteCreate": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "NoteCreate",
+        "description": "Body of `POST /notes` (AC-010): plain text only, no formatting, checklist,\nimage or attachment fields (AC-011)."
+      },
+      "NoteRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "createdAt"
+        ],
+        "title": "NoteRead",
+        "description": "A created note (AC-010/AC-012): its text and the timestamp recorded at the\nmoment of creation."
       },
       "ValidationError": {
         "properties": {

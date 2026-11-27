@@ -60,6 +60,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Note */
+        post: operations["create_note_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -109,6 +126,31 @@ export interface components {
         LoginResponse: {
             /** Token */
             token: string;
+        };
+        /**
+         * NoteCreate
+         * @description Body of `POST /notes` (AC-010): plain text only, no formatting, checklist,
+         *     image or attachment fields (AC-011).
+         */
+        NoteCreate: {
+            /** Text */
+            text: string;
+        };
+        /**
+         * NoteRead
+         * @description A created note (AC-010/AC-012): its text and the timestamp recorded at the
+         *     moment of creation.
+         */
+        NoteRead: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -213,6 +255,44 @@ export interface operations {
             };
             /** @description Your session has expired. Sign in again. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_note_notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRead"];
+                };
+            };
+            /** @description Your session has expired. Sign in again. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Note text is required. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
